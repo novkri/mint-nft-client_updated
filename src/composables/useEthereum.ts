@@ -66,8 +66,6 @@ export function useEthereum(CONTRACT_ADDRESS: string) {
     }
 
     const setupEventListener = async () => {
-        // new Promise((resolve, reject) => {})
-        // new Promise((resolve, reject) => {})
         try {
             if (ethereum) {
                 nftMintedListener()
@@ -88,13 +86,17 @@ export function useEthereum(CONTRACT_ADDRESS: string) {
             return;
         }
 
-        const accounts = await ethereum.request({ method: 'eth_accounts' })
+        try {
+            const accounts = await ethereum.request({method: 'eth_accounts'})
 
-        if (accounts.length !== 0) {
-            currentAccount.value = accounts[0]
-            currentChainId.value = await ethereum.request({method: 'eth_chainId'})
+            if (accounts.length !== 0) {
+                currentAccount.value = accounts[0]
+                currentChainId.value = await ethereum.request({method: 'eth_chainId'})
+            }
         }
-
+        catch (err) {
+            createTypedToaster('MetaMask Error: ' + (err as ApiError).message,  'danger')
+        }
     }
 
     const connectWallet = async () => {
@@ -120,6 +122,7 @@ export function useEthereum(CONTRACT_ADDRESS: string) {
             createTypedToaster('Account is blocked', 'warning')
             return
         }
+
         try {
             if (ethereum) {
                 let nftTxn = await connectedContract.makeAnEpicNFT();
@@ -139,13 +142,13 @@ export function useEthereum(CONTRACT_ADDRESS: string) {
         }
     }
 
+
     const switchChain = async () => {
         try {
             await ethereum.request({
                 method: 'wallet_switchEthereumChain',
                 params: [{ chainId: '0x4' }],
             });
-
         } catch (switchError) {
             if ((switchError as ApiError).code === 4902) {
                 try {
