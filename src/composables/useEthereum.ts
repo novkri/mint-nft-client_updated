@@ -18,17 +18,17 @@ export function useEthereum(CONTRACT_ADDRESS: string) {
     const isMinting = ref(false)
     const isMintDone = ref(false)
     const tokenId = ref('')
+    const totalMinted = ref()
 
 
     const provider = new ethers.providers.Web3Provider(ethereum);
     const signer = provider.getSigner();
     const connectedContract = new ethers.Contract(CONTRACT_ADDRESS, myEpicNft.abi, signer);
 
-    // todo total count of minted nft with new contract
-    connectedContract.count().then(res => {
-        console.log('count: ', parseInt(res))
-    })
-
+    const getTotalMinted = async () => {
+        const totalBig = await connectedContract.count()
+        totalMinted.value = parseInt(totalBig)
+    }
     const createTypedToaster = (msg: string, type: 'default' | 'info' | 'warning' | 'danger' | 'success') => {
         createToast(msg, {
             position: 'bottom-right',
@@ -60,6 +60,7 @@ export function useEthereum(CONTRACT_ADDRESS: string) {
                 createTypedToaster('Accounts are switched',  'success')
             }
             currentAccount.value = accounts[0]
+            getTotalMinted()
         })
     }
 
@@ -96,6 +97,7 @@ export function useEthereum(CONTRACT_ADDRESS: string) {
 
             if (accounts.length !== 0) {
                 currentAccount.value = accounts[0]
+                getTotalMinted()
                 currentChainId.value = await ethereum.request({method: 'eth_chainId'})
             }
         }
@@ -113,6 +115,7 @@ export function useEthereum(CONTRACT_ADDRESS: string) {
 
             const accounts = await ethereum.request({ method: "eth_requestAccounts" });
             currentAccount.value = accounts[0]
+            getTotalMinted()
             currentChainId.value = await ethereum.request({method: 'eth_chainId'})
 
         } catch (err) {
@@ -183,6 +186,7 @@ export function useEthereum(CONTRACT_ADDRESS: string) {
         isMinting,
         isMintDone,
         tokenId,
+        totalMinted,
         setupEventListener,
         checkIfWalletIsConnected,
         connectWallet,

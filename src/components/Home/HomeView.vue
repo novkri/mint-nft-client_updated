@@ -14,6 +14,7 @@ const {
   isMinting,
   isMintDone,
   tokenId,
+  totalMinted,
   setupEventListener,
   checkIfWalletIsConnected,
   connectWallet,
@@ -46,6 +47,7 @@ onMounted(() => {
           Mint NFT
         </button>
 
+        <p class="sub-text">Total minted NFT's: {{ totalMinted }}</p>
         <!--        todo jumping -->
         <div v-if="isMintDone" class="badge badge--info">
           <p>Hey there! We've minted your NFT and sent it to your wallet. It may be blank right now. It can take a max of 10 min to show up on OpenSea. Here's the   <a :href='`https://testnets.opensea.io/assets/${CONTRACT_ADDRESS}/${tokenId}`'>link</a></p>
