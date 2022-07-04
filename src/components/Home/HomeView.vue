@@ -4,7 +4,9 @@ import {onMounted, ref} from "vue"
 import {useEthereum} from "../../composables/useEthereum";
 
 
-const CONTRACT_ADDRESS = "0x311970bA54385ae9bD68287843B974c6525d7c64";
+// const CONTRACT_ADDRESS = "0x311970bA54385ae9bD68287843B974c6525d7c64";
+// with count funciton:
+const CONTRACT_ADDRESS = "0xeb5360650Ceba56CFFae797Bc41B86173afBaDD6";
 
 const {
   currentAccount,

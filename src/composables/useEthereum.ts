@@ -24,6 +24,11 @@ export function useEthereum(CONTRACT_ADDRESS: string) {
     const signer = provider.getSigner();
     const connectedContract = new ethers.Contract(CONTRACT_ADDRESS, myEpicNft.abi, signer);
 
+    // todo total count of minted nft with new contract
+    connectedContract.count().then(res => {
+        console.log('count: ', parseInt(res))
+    })
+
     const createTypedToaster = (msg: string, type: 'default' | 'info' | 'warning' | 'danger' | 'success') => {
         createToast(msg, {
             position: 'bottom-right',
@@ -59,8 +64,8 @@ export function useEthereum(CONTRACT_ADDRESS: string) {
     }
 
     const nftMintedListener = () => {
-        connectedContract.on("NewEpicNFTMinted", (from, tokenId) => {
-                tokenId.value = tokenId.toNumber()
+        connectedContract.on("NewEpicNFTMinted", (from, _tokenId) => {
+                tokenId.value = _tokenId.toNumber()
             }
         );
     }
@@ -128,7 +133,7 @@ export function useEthereum(CONTRACT_ADDRESS: string) {
                 let nftTxn = await connectedContract.makeAnEpicNFT();
                 isMinting.value = true
 
-                console.log("Mining...please wait.")
+                console.log("Minting...please wait.")
                 await nftTxn.wait();
                 isMinting.value = false
                 isMintDone.value = true
