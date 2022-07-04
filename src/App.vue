@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import './assets/styles/App.css';
-import HelloWorld from './components/HelloWorld.vue'
+import HelloWorld from './components/Home/HomeView.vue'
 
 </script>
 
