@@ -11,17 +11,20 @@ const CONTRACT_ADDRESS = "0x311970bA54385ae9bD68287843B974c6525d7c64";
 
 const currentAccount = ref('')
 const currentChainId = ref('')
-const isMining = ref(false)
+const isMinting = ref(false)
 const isMintDone = ref(false)
+const tokenId = ref()
 
 const info = ref('')
 const error = ref('')
 
 
+const { ethereum } = window;
+
+
 const setupEventListener = async () => {
   error.value = ""
   try {
-    const { ethereum } = window;
 
     if (ethereum) {
       const provider = new ethers.providers.Web3Provider(ethereum);
@@ -30,10 +33,10 @@ const setupEventListener = async () => {
 
 
       connectedContract.on("NewEpicNFTMinted", (from, tokenId) => {
-        console.log(from, tokenId.toNumber())
-        alert(`Hey there! We've minted your NFT and sent it to your wallet.
-        It may be blank right now. It can take a max of 10 min to show up on OpenSea. Here's the link: https://testnets.opensea.io/assets/${CONTRACT_ADDRESS}/${tokenId.toNumber()}`)
-      });
+            console.log(from, tokenId.toNumber())
+            tokenId.value = tokenId.toNumber()
+          }
+      );
 
       ethereum.on('accountsChanged', (accounts: string[]) => {
         console.log('accounts changed', accounts)
@@ -44,8 +47,7 @@ const setupEventListener = async () => {
       ethereum.on('chainChanged', (chainId: string) => {
         console.log('chain changed', chainId)
         currentChainId.value = chainId
-        // Handle the new chain.
-        // Correctly handling chain changes can be complicated.
+
         // We recommend reloading the page unless you have good reason not to.
         // window.location.reload();
       });
@@ -62,7 +64,7 @@ const setupEventListener = async () => {
 
 const checkIfWalletIsConnected = async () => {
   error.value = ""
-  const { ethereum } = window;
+
 
   if (!ethereum) {
     error.value = "Make sure you have metamask!"
@@ -92,7 +94,7 @@ const checkIfWalletIsConnected = async () => {
 const connectWallet = async () => {
   error.value = ""
   try {
-    const { ethereum } = window;
+
 
     if (!ethereum) {
       alert("Get MetaMask!");
@@ -124,17 +126,14 @@ const connectWallet = async () => {
 const askContractToMintNft = async () => {
   error.value = ""
   info.value = ""
+  isMintDone.value = false
 
-
-
-  //
-  // if (!currentAccount.value) {
-  //   // todo text
-  //   error.value = "Account is blocked"
-  //   return
-  // }
+  if (!currentAccount.value) {
+    error.value = "Account is blocked"
+    return
+  }
   try {
-    const { ethereum } = window;
+
 
     if (ethereum) {
       const provider = new ethers.providers.Web3Provider(ethereum);
@@ -145,11 +144,11 @@ const askContractToMintNft = async () => {
       console.log("Going to pop wallet now to pay gas...")
       let nftTxn = await connectedContract.makeAnEpicNFT();
 
-      isMining.value = true
+      isMinting.value = true
       info.value = "Mining...please wait. \n"
       console.log("Mining...please wait.")
       await nftTxn.wait();
-      isMining.value = false
+      isMinting.value = false
 
 
       info.value = `Mined, see transaction: https://rinkeby.etherscan.io/tx/${nftTxn.hash}`
@@ -167,6 +166,35 @@ const askContractToMintNft = async () => {
   }
 }
 
+const switchChain = async () => {
+  try {
+    await ethereum.request({
+      method: 'wallet_switchEthereumChain',
+      params: [{ chainId: '0x4' }],
+    });
+  } catch (switchError) {
+    // This error code indicates that the chain has not been added to MetaMask.
+    if (switchError.code === 4902) {
+      try {
+        await ethereum.request({
+          method: 'wallet_addEthereumChain',
+          params: [
+            {
+              chainId: '0x4',
+              chainName: 'Rinkeby Test Network',
+              rpcUrls: ['https://rinkeby.infura.io/v3/']
+            },
+          ],
+        });
+      } catch (addError) {
+        console.log(addError)
+        // handle "add" error
+      }
+    }
+    console.log(switchError)
+    // handle other "switch" errors
+  }
+}
 onMounted(() => {
   error.value = ""
   info.value = ""
@@ -184,14 +212,22 @@ onMounted(() => {
         <button v-if="!currentAccount" class="cta-button connect-wallet-button" @click="connectWallet">Connect to Wallet</button>
         <!--        todo text & styles -->
         <p class="sub-text" v-if="currentAccount">Found an authorized account: {{ currentAccount }}</p>
-        <button v-if="currentAccount" @click="askContractToMintNft" class="cta-button mint-button">
+        <p class="sub-text" v-if="currentAccount">Current chain: {{ currentChainId }}</p>
+        <p class="sub-text" v-if="currentAccount && currentChainId !== '0x4'">You are not connected to Rinkeby chain. <button class="cta-button connect-wallet-button" @click="switchChain">Switch to <b>Rinkeby</b></button></p>
+
+        <button v-if="currentAccount" @click="askContractToMintNft" class="cta-button mint-button" :disabled="currentChainId !== '0x4'">
           Mint NFT
         </button>
+
+        <div v-if="isMintDone" class="badge badge--info">
+          <p>Hey there! We've minted your NFT and sent it to your wallet. It may be blank right now. It can take a max of 10 min to show up on OpenSea. Here's the   <a :href='`https://testnets.opensea.io/assets/${CONTRACT_ADDRESS}/${tokenId}`'>link</a></p>
+        </div>
 
 
       </div>
 
-      <div class="loader" v-if="isMining">Minting...</div>
+      <div class="loader" v-if="isMinting" />
+      <p class="sub-text" v-if="isMinting">Minting... Please wait</p>
       <div class="footer-container">
         <p class="error" v-if="error">Error: {{ error }}</p>
       </div>
@@ -255,6 +291,11 @@ onMounted(() => {
   background-size: 200% 200%;
   animation: gradient-animation 4s ease infinite;
   margin-right: 15px;
+}
+
+.cta-button:disabled {
+  background: grey;
+  cursor: default;
 }
 
 .opensea-button {
@@ -352,4 +393,17 @@ onMounted(() => {
   }
 }
 
+
+.badge {
+  padding: 30px;
+  max-width: 800px;
+  border-radius: 18px;
+  color: white;
+  line-height: 150%;
+  margin: 30px auto;
+}
+
+.badge--info {
+background-color: rgba(96, 198, 87, 0.86);
+ }
 </style>

@@ -8,8 +8,9 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "vue": "^3.2.25",
-    "ethers": "^5.6.9"
+    "ethers": "^5.6.9",
+    "mosha-vue-toastify": "^1.0.23",
+    "vue": "^3.2.25"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^2.3.3",
