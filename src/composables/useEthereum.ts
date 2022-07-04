@@ -1,101 +1,115 @@
 import {ref} from "vue";
 import {ethers} from "ethers";
 import myEpicNft from "../utils/MyEpicNFT.json";
-import { createToast } from 'mosha-vue-toastify';
+import {createToast} from 'mosha-vue-toastify';
 import 'mosha-vue-toastify/dist/style.css'
 
+interface ApiError {
+    code: number;
+    message: string;
+}
+
 export function useEthereum(CONTRACT_ADDRESS: string) {
+    // @ts-ignore
     const { ethereum } = window;
 
     const currentAccount = ref('')
     const currentChainId = ref('')
     const isMinting = ref(false)
     const isMintDone = ref(false)
-    const tokenId = ref()
+    const tokenId = ref('')
+
+
+    const provider = new ethers.providers.Web3Provider(ethereum);
+    const signer = provider.getSigner();
+    const connectedContract = new ethers.Contract(CONTRACT_ADDRESS, myEpicNft.abi, signer);
+
+    const createTypedToaster = (msg: string, type: 'default' | 'info' | 'warning' | 'danger' | 'success') => {
+        createToast(msg, {
+            position: 'bottom-right',
+            type,
+            transition: 'slide',
+        })
+    }
+
+    const chainListener = () => {
+        ethereum.on('chainChanged', (chainId: string) => {
+            currentChainId.value = chainId
+
+            const rinkebyChainId = "0x4";
+            if (chainId !== rinkebyChainId) {
+                createTypedToaster("You are not connected to the Rinkeby Test Network!",  'danger')
+            } else {
+                createTypedToaster('Chain changed to Rinkeby', 'success')
+            }
+        });
+    }
+
+    const accountListener = () => {
+        ethereum.on('accountsChanged', (accounts: string[]) => {
+            if (!currentAccount.value && accounts.length > 0) {
+                createTypedToaster('You are connected',  'success')
+            } else if (currentAccount.value.length > 0 && accounts.length === 0) {
+                createTypedToaster('Account is blocked', 'success')
+            } else if (currentAccount.value.length > 0 && accounts.length > 0) {
+                createTypedToaster('Accounts are switched',  'success')
+            }
+            currentAccount.value = accounts[0]
+        })
+    }
+
+    const nftMintedListener = () => {
+        connectedContract.on("NewEpicNFTMinted", (from, tokenId) => {
+                tokenId.value = tokenId.toNumber()
+            }
+        );
+    }
 
     const setupEventListener = async () => {
+        // new Promise((resolve, reject) => {})
+        // new Promise((resolve, reject) => {})
         try {
             if (ethereum) {
-                const provider = new ethers.providers.Web3Provider(ethereum);
-                const signer = provider.getSigner();
-                const connectedContract = new ethers.Contract(CONTRACT_ADDRESS, myEpicNft.abi, signer);
-
-
-                connectedContract.on("NewEpicNFTMinted", (from, tokenId) => {
-                        tokenId.value = tokenId.toNumber()
-                    }
-                );
-
-                ethereum.on('accountsChanged', (accounts: string[]) => {
-                    createToast(accounts.length > 0 ? 'Accounts changed' : 'Account blocked')
-                    currentAccount.value = accounts[0]
-                })
-
-
-                ethereum.on('chainChanged', (chainId: string) => {
-                    // createToast('Chain changed')
-                    currentChainId.value = chainId
-
-                    const rinkebyChainId = "0x4";
-                    if (chainId !== rinkebyChainId) {
-                        createToast("You are not connected to the Rinkeby Test Network!")
-                    } else {
-                        createToast('Chain changed to Rinkeby')
-                    }
-                });
-            } else {
-                createToast("Make sure you have metamask!")
+                nftMintedListener()
+                accountListener()
+                chainListener()
+            }
+            else {
+                createTypedToaster("Make sure you have metamask!", 'danger')
             }
         } catch (err) {
-            createToast(err.message)
-
+            createTypedToaster('MetaMask Error: ' + (err as ApiError).message,  'danger')
         }
     }
 
     const checkIfWalletIsConnected = async () => {
         if (!ethereum) {
-            createToast("Make sure you have metamask!")
+            createTypedToaster("Make sure you have metamask!",  'danger')
             return;
-        } else {
-            console.log("We have the ethereum object", ethereum);
         }
 
         const accounts = await ethereum.request({ method: 'eth_accounts' })
 
         if (accounts.length !== 0) {
-            const account = accounts[0];
-            console.log("Found an authorized account:", account);
-
-            let chainId = await ethereum.request({ method: 'eth_chainId' });
-            currentChainId.value = chainId
-
-            currentAccount.value = account
-        } else {
-            console.log("No authorized account found");
+            currentAccount.value = accounts[0]
+            currentChainId.value = await ethereum.request({method: 'eth_chainId'})
         }
+
     }
 
     const connectWallet = async () => {
         try {
             if (!ethereum) {
-                createToast("Get MetaMask!", {
-                    position: 'bottom-right',
-                    type: 'danger',
-                    transition: 'slide',
-                })
+                createTypedToaster("Get MetaMask!", 'danger')
                 return;
             }
 
             const accounts = await ethereum.request({ method: "eth_requestAccounts" });
-
+            currentAccount.value = accounts[0]
+            currentChainId.value = await ethereum.request({method: 'eth_chainId'})
 
         } catch (err) {
-            createToast(err.message, {
-                position: 'bottom-right',
-                type: 'danger',
-                transition: 'slide',
-            })
-
+            createTypedToaster('MetaMask Error: ' + (err as ApiError).message, 'danger')
         }
     }
 
@@ -103,47 +117,25 @@ export function useEthereum(CONTRACT_ADDRESS: string) {
         isMintDone.value = false
 
         if (!currentAccount.value) {
-            createToast('Account is blocked', {
-                position: 'bottom-right',
-                type: 'warning',
-                transition: 'slide',
-            })
+            createTypedToaster('Account is blocked', 'warning')
             return
         }
         try {
             if (ethereum) {
-                const provider = new ethers.providers.Web3Provider(ethereum);
-                const signer = provider.getSigner();
-                const connectedContract = new ethers.Contract(CONTRACT_ADDRESS, myEpicNft.abi, signer);
-
-                console.log("Going to pop wallet now to pay gas...")
                 let nftTxn = await connectedContract.makeAnEpicNFT();
-
                 isMinting.value = true
 
                 console.log("Mining...please wait.")
                 await nftTxn.wait();
                 isMinting.value = false
-
-
-
                 isMintDone.value = true
                 console.log(`Mined, see transaction: https://rinkeby.etherscan.io/tx/${nftTxn.hash}`);
 
             } else {
-                createToast("Get MetaMask",{
-                    position: 'bottom-right',
-                    type: 'danger',
-                    transition: 'slide',
-                })
+                createTypedToaster("Get MetaMask",'danger')
             }
         } catch (err) {
-            createToast(err.message, {
-                position: 'bottom-right',
-                type: 'danger',
-                transition: 'slide',
-            })
-
+            createTypedToaster('MetaMask Error: ' + (err as ApiError).message, 'danger')
         }
     }
 
@@ -155,7 +147,7 @@ export function useEthereum(CONTRACT_ADDRESS: string) {
             });
 
         } catch (switchError) {
-            if (switchError.code === 4902) {
+            if ((switchError as ApiError).code === 4902) {
                 try {
                     await ethereum.request({
                         method: 'wallet_addEthereumChain',
@@ -167,25 +159,13 @@ export function useEthereum(CONTRACT_ADDRESS: string) {
                             },
                         ],
                     });
-                    createToast('New chain added', {
-                        position: 'bottom-right',
-                        type: 'success',
-                        transition: 'slide',
-                    })
+                    createTypedToaster('New chain added', 'success')
                 } catch (err) {
-                    createToast(err.message, {
-                        position: 'bottom-right',
-                        type: 'danger',
-                        transition: 'slide',
-                    })
+                    createTypedToaster('MetaMask Error: ' + (err as ApiError).message, 'danger')
                 }
             }
 
-            createToast(switchError.message, {
-                position: 'bottom-right',
-                type: 'danger',
-                transition: 'slide',
-            })
+            createTypedToaster('MetaMask Error: ' + (switchError as ApiError).message, 'danger')
         }
     }
 
@@ -198,6 +178,7 @@ export function useEthereum(CONTRACT_ADDRESS: string) {
         setupEventListener,
         checkIfWalletIsConnected,
         connectWallet,
+        askContractToMintNft,
         switchChain,
     }
 }

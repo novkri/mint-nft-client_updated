@@ -6,11 +6,18 @@ import {useEthereum} from "../../composables/useEthereum";
 
 const CONTRACT_ADDRESS = "0x311970bA54385ae9bD68287843B974c6525d7c64";
 
-const { currentAccount, currentChainId, isMinting, isMintDone, tokenId,
+const {
+  currentAccount,
+  currentChainId,
+  isMinting,
+  isMintDone,
+  tokenId,
   setupEventListener,
   checkIfWalletIsConnected,
   connectWallet,
-  switchChain } = useEthereum(CONTRACT_ADDRESS)
+  switchChain,
+  askContractToMintNft
+} = useEthereum(CONTRACT_ADDRESS)
 
 
 
