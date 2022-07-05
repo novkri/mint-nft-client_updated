@@ -50,9 +50,9 @@ onMounted(() => {
             Mint NFT
           </button>
 
-          <p class="sub-text">Total minted NFT's: {{ totalMinted }}</p>
-<!--          <button class="cta-button mint-button" @click="isCollectionOpen = !isCollectionOpen">{{ isCollectionOpen ? 'Close' : 'Show'}} my NFT collection</button>-->
-<!--          <NFTCollection v-if="isCollectionOpen" :data="nftCollection" />-->
+          <p class="sub-text">Your total minted NFT's: {{ totalMinted }}. </p>
+        <!--          <button class="cta-button mint-button" @click="isCollectionOpen = !isCollectionOpen">{{ isCollectionOpen ? 'Close' : 'Show'}} my NFT collection</button>-->
+        <!--          <NFTCollection v-if="isCollectionOpen" :data="nftCollection" />-->
 
           <div v-if="isMintDone" class="badge badge--info">
             <p>Hey there! We've minted your NFT and sent it to your wallet. It may be blank right now. It can take a max of 10 min to show up on OpenSea. Here's the <a :href='`https://testnets.opensea.io/assets/${CONTRACT_ADDRESS}/${tokenId}`'>link</a></p>

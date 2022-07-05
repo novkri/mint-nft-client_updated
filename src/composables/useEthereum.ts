@@ -3,6 +3,7 @@ import {ethers} from "ethers";
 import myEpicNft from "../utils/MyEpicNFT.json";
 import {createToast} from 'mosha-vue-toastify';
 import 'mosha-vue-toastify/dist/style.css'
+import {useHelpers} from "./useHelpers";
 
 interface ApiError {
     code: number;
@@ -25,7 +26,7 @@ export function useEthereum(CONTRACT_ADDRESS: string) {
     const signer = provider.getSigner();
     const connectedContract = new ethers.Contract(CONTRACT_ADDRESS, myEpicNft.abi, signer);
 
-
+    const { createTypedToaster } = useHelpers()
 
     const getCollection = (WALLET_ADDRESS: string) => {
         fetch(
@@ -35,63 +36,52 @@ export function useEthereum(CONTRACT_ADDRESS: string) {
         ).then(response => response.json()
         ).then(data => {
             nftCollection.value = data
-            console.log(data)
         });
-
     }
 
+
     const getTotalMinted = () => {
+        // connectedContract.balanceOf(WALLET_ADDRESS).then(res => {
+        //     console.log(res, parseInt(res))
+        // })
         connectedContract.count().then((res: any) => { totalMinted.value = parseInt(res)})
     }
 
-    const createTypedToaster = (msg: string, type: 'default' | 'info' | 'warning' | 'danger' | 'success') => {
-        createToast(msg, {
-            position: 'bottom-right',
-            type,
-            transition: 'slide',
-        })
+
+    const chainListener = (chainId: string) => {
+        currentChainId.value = chainId
+
+        const rinkebyChainId = "0x4";
+        if (chainId !== rinkebyChainId) {
+            createTypedToaster("You are not connected to the Rinkeby Test Network!",  'danger')
+        } else {
+            createTypedToaster('Chain changed to Rinkeby', 'success')
+        }
     }
 
-    const chainListener = () => {
-        ethereum.on('chainChanged', (chainId: string) => {
-            currentChainId.value = chainId
 
-            const rinkebyChainId = "0x4";
-            if (chainId !== rinkebyChainId) {
-                createTypedToaster("You are not connected to the Rinkeby Test Network!",  'danger')
-            } else {
-                createTypedToaster('Chain changed to Rinkeby', 'success')
-            }
-        });
+    const accountListener = (accounts: string[]) => {
+        if (!currentAccount.value && accounts.length > 0) {
+            createTypedToaster('You are connected',  'success')
+        } else if (currentAccount.value.length > 0 && accounts.length === 0) {
+            createTypedToaster('Account is blocked', 'success')
+        } else if (currentAccount.value.length > 0 && accounts.length > 0) {
+            createTypedToaster('Accounts are switched',  'success')
+        }
+        currentAccount.value = accounts[0]
+        getCollection(currentAccount.value)
     }
 
-    const accountListener = () => {
-        ethereum.on('accountsChanged', (accounts: string[]) => {
-            if (!currentAccount.value && accounts.length > 0) {
-                createTypedToaster('You are connected',  'success')
-            } else if (currentAccount.value.length > 0 && accounts.length === 0) {
-                createTypedToaster('Account is blocked', 'success')
-            } else if (currentAccount.value.length > 0 && accounts.length > 0) {
-                createTypedToaster('Accounts are switched',  'success')
-            }
-            currentAccount.value = accounts[0]
-            getCollection(currentAccount.value)
-        })
-    }
-
-    const nftMintedListener = () => {
-        connectedContract.on("NewEpicNFTMinted", (from, _tokenId) => {
-                tokenId.value = _tokenId.toNumber()
-            }
-        );
+    const nftMintedListener = (from: any, _tokenId: any) => {
+        tokenId.value = _tokenId.toNumber()
     }
 
     const setupEventListener = async () => {
         try {
             if (ethereum) {
-                nftMintedListener()
-                accountListener()
-                chainListener()
+                connectedContract.on('NewEpicNFTMinted', nftMintedListener)
+                ethereum.on('chainChanged', chainListener)
+                ethereum.on('accountsChanged', accountListener)
                 getTotalMinted()
             }
             else {
@@ -113,7 +103,6 @@ export function useEthereum(CONTRACT_ADDRESS: string) {
 
             if (accounts.length !== 0) {
                 currentAccount.value = accounts[0]
-
                 getCollection(currentAccount.value)
                 getTotalMinted()
                 currentChainId.value = await ethereum.request({method: 'eth_chainId'})
@@ -134,6 +123,7 @@ export function useEthereum(CONTRACT_ADDRESS: string) {
             const accounts = await ethereum.request({ method: "eth_requestAccounts" });
             currentAccount.value = accounts[0]
             getCollection(currentAccount.value)
+
             getTotalMinted()
             currentChainId.value = await ethereum.request({method: 'eth_chainId'})
 
