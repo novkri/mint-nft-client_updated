@@ -19,16 +19,31 @@ export function useEthereum(CONTRACT_ADDRESS: string) {
     const isMintDone = ref(false)
     const tokenId = ref('')
     const totalMinted = ref()
-
+    const nftCollection = ref([])
 
     const provider = new ethers.providers.Web3Provider(ethereum);
     const signer = provider.getSigner();
     const connectedContract = new ethers.Contract(CONTRACT_ADDRESS, myEpicNft.abi, signer);
 
-    const getTotalMinted = async () => {
-        const totalBig = await connectedContract.count()
-        totalMinted.value = parseInt(totalBig)
+
+
+    const getCollection = (WALLET_ADDRESS: string) => {
+        fetch(
+            `https://testnets-api.opensea.io/api/v1/collections?asset_owner=${WALLET_ADDRESS}`, {
+                method: 'GET', headers : { Accept: "application/json" }
+            }
+        ).then(response => response.json()
+        ).then(data => {
+            nftCollection.value = data
+            console.log(data)
+        });
+
     }
+
+    const getTotalMinted = () => {
+        connectedContract.count().then((res: any) => { totalMinted.value = parseInt(res)})
+    }
+
     const createTypedToaster = (msg: string, type: 'default' | 'info' | 'warning' | 'danger' | 'success') => {
         createToast(msg, {
             position: 'bottom-right',
@@ -60,7 +75,7 @@ export function useEthereum(CONTRACT_ADDRESS: string) {
                 createTypedToaster('Accounts are switched',  'success')
             }
             currentAccount.value = accounts[0]
-            getTotalMinted()
+            getCollection(currentAccount.value)
         })
     }
 
@@ -77,6 +92,7 @@ export function useEthereum(CONTRACT_ADDRESS: string) {
                 nftMintedListener()
                 accountListener()
                 chainListener()
+                getTotalMinted()
             }
             else {
                 createTypedToaster("Make sure you have metamask!", 'danger')
@@ -97,6 +113,8 @@ export function useEthereum(CONTRACT_ADDRESS: string) {
 
             if (accounts.length !== 0) {
                 currentAccount.value = accounts[0]
+
+                getCollection(currentAccount.value)
                 getTotalMinted()
                 currentChainId.value = await ethereum.request({method: 'eth_chainId'})
             }
@@ -115,6 +133,7 @@ export function useEthereum(CONTRACT_ADDRESS: string) {
 
             const accounts = await ethereum.request({ method: "eth_requestAccounts" });
             currentAccount.value = accounts[0]
+            getCollection(currentAccount.value)
             getTotalMinted()
             currentChainId.value = await ethereum.request({method: 'eth_chainId'})
 
@@ -140,7 +159,7 @@ export function useEthereum(CONTRACT_ADDRESS: string) {
                 await nftTxn.wait();
                 isMinting.value = false
                 isMintDone.value = true
-                console.log(`Mined, see transaction: https://rinkeby.etherscan.io/tx/${nftTxn.hash}`);
+                console.log(`Minted, see transaction: https://rinkeby.etherscan.io/tx/${nftTxn.hash}`);
 
             } else {
                 createTypedToaster("Get MetaMask",'danger')
@@ -187,6 +206,7 @@ export function useEthereum(CONTRACT_ADDRESS: string) {
         isMintDone,
         tokenId,
         totalMinted,
+        nftCollection,
         setupEventListener,
         checkIfWalletIsConnected,
         connectWallet,
