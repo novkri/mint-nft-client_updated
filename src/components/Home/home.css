@@ -158,8 +158,15 @@
     color: white;
     line-height: 150%;
     margin: 30px auto;
+    font-size: 18px;
+}
+
+.badge a {
+    color: #fefefe;
+    font-weight: bold;
+    line-height: 150%;
 }
 
 .badge--info {
-    background-color: rgba(96, 198, 87, 0.86);
+    background-color: rgb(16 200 157);
 }

@@ -7,7 +7,9 @@ import NFTCollection from "../NFTCollection/NFTCollection.vue";
 
 // const CONTRACT_ADDRESS = "0x311970bA54385ae9bD68287843B974c6525d7c64";
 // contract with count function:
-const CONTRACT_ADDRESS = "0xeb5360650Ceba56CFFae797Bc41B86173afBaDD6";
+// const CONTRACT_ADDRESS = "0xeb5360650Ceba56CFFae797Bc41B86173afBaDD6";
+// contract with mint limit
+const CONTRACT_ADDRESS = "0x8268C6fD36A68Dd9a8711CaF561f2C4372B29cD5";
 
 const {
   currentAccount,
@@ -16,6 +18,7 @@ const {
   isMintDone,
   tokenId,
   totalMinted,
+  total,
   // nftCollection,
   setupEventListener,
   checkIfWalletIsConnected,
@@ -23,8 +26,6 @@ const {
   switchChain,
   askContractToMintNft
 } = useEthereum(CONTRACT_ADDRESS)
-
-// const isCollectionOpen = ref(false)
 
 onMounted(() => {
   setupEventListener()
@@ -61,13 +62,13 @@ enum popularChains {
           </button>
 
           <br />
-          <p class="sub-text">Your total minted NFT's: {{ totalMinted }}. </p>
+          <p class="sub-text">Your total minted NFT's: {{ totalMinted }}/{{total}}. </p>
           <!--          <button class="cta-button mint-button" @click="isCollectionOpen = !isCollectionOpen">{{ isCollectionOpen ? 'Close' : 'Show'}} my NFT collection</button>-->
           <!--          <NFTCollection v-if="isCollectionOpen" :data="nftCollection" />-->
-
           <br />
           <div v-if="isMintDone" class="badge badge--info">
-            <p>Hey there! We've minted your NFT and sent it to your wallet. It may be blank right now. It can take a max of 10 min to show up on OpenSea. Here's the <a :href='`https://testnets.opensea.io/assets/${CONTRACT_ADDRESS}/${tokenId}`'>link</a></p>
+            <p>Hey there! We've minted your NFT and sent it to your wallet. It may be blank right now. It can take a max of 10 min to show up on OpenSea.</p>
+            <a :href='`https://testnets.opensea.io/assets/${CONTRACT_ADDRESS}/${tokenId}`' target="_blank">🌊 View Collection on OpenSea</a>
           </div>
 
         </div>

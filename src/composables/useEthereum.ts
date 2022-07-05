@@ -21,10 +21,18 @@ export function useEthereum(CONTRACT_ADDRESS: string) {
     const tokenId = ref('')
     const totalMinted = ref()
     const nftCollection = ref([])
+    const total = ref(0)
 
     const provider = new ethers.providers.Web3Provider(ethereum);
     const signer = provider.getSigner();
     const connectedContract = new ethers.Contract(CONTRACT_ADDRESS, myEpicNft.abi, signer);
+
+    connectedContract.maxMintAmount().then((res: any) => {
+        total.value = res
+    })
+
+    console.log(connectedContract.maxMintAmount())
+
 
     const { createTypedToaster } = useHelpers()
 
@@ -149,6 +157,7 @@ export function useEthereum(CONTRACT_ADDRESS: string) {
                 await nftTxn.wait();
                 isMinting.value = false
                 isMintDone.value = true
+                getTotalMinted()
                 console.log(`Minted, see transaction: https://rinkeby.etherscan.io/tx/${nftTxn.hash}`);
 
             } else {
@@ -197,6 +206,7 @@ export function useEthereum(CONTRACT_ADDRESS: string) {
         tokenId,
         totalMinted,
         nftCollection,
+        total,
         setupEventListener,
         checkIfWalletIsConnected,
         connectWallet,
